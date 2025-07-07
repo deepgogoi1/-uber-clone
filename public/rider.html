@@ -1,0 +1,20 @@
+<!-- rider.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Rider Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+</head>
+<body>
+  <h2>Welcome, Rider</h2>
+  <div id="map" style="height: 400px;"></div>
+  <button onclick="requestRide()">Request Ride</button>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/rider.js"></script>
+</body>
+</html>
