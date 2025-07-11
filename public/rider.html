@@ -1,68 +1,105 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>GoRide - Book a Ride</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
+  <meta charset="utf-8">
+  <title>Track Rider - GoRide</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
-    html, body {
-      margin: 0;
-      height: 100%;
-      font-family: Arial, sans-serif;
-    }
-    #map {
-      width: 100%;
-      height: 100vh;
+    #map { height: 100vh; }
+    .eta-box {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      z-index: 999;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
 
 <div id="map"></div>
+<div class="eta-box" id="etaBox">ETA: --</div>
 
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+<!-- Firebase Config -->
 <script>
-  const map = L.map('map').setView([26.1445, 91.7362], 13); // Guwahati
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT.firebaseio.com",
+  projectId: "YOUR_PROJECT",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_ID",
+  appId: "YOUR_APP_ID"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+</script>
 
-  // Add OpenStreetMap tiles (free)
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-  }).addTo(map);
+<!-- Live Map Logic -->
+<script>
+const map = L.map('map').setView([26.1445, 91.7362], 15);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-  // Add user location if allowed
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(pos => {
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
-      L.marker([lat, lng]).addTo(map).bindPopup("📍 You are here").openPopup();
-      map.setView([lat, lng], 15);
-    });
-  }
+const driverId = 'driver123'; // Assume this is the assigned driver
+let driverMarker = null;
+const pickupLocation = [26.1445, 91.7362]; // your pickup location
 
-  // Sample car markers
-  const carIcon = L.icon({
-    iconUrl: 'https://img.icons8.com/color/48/car--v1.png',
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -30]
+L.marker(pickupLocation).addTo(map).bindPopup("📍 Pickup").openPopup();
+
+function updateETA(lat1, lon1, lat2, lon2) {
+  const R = 6371; // km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const distance = R * c;
+  const avgSpeed = 30; // km/h
+  const etaMin = Math.round((distance / avgSpeed) * 60);
+
+  document.getElementById('etaBox').innerText = `ETA: ${etaMin} min`;
+}
+
+// Listen to driver location from Firebase
+function trackDriver() {
+  firebase.database().ref(`drivers/${driverId}`).on('value', snapshot => {
+    const data = snapshot.val();
+    if (!data) return;
+
+    const lat = data.lat;
+    const lng = data.lng;
+
+    if (driverMarker) {
+      driverMarker.setLatLng([lat, lng]);
+    } else {
+      driverMarker = L.marker([lat, lng], {
+        icon: L.icon({
+          iconUrl: 'https://img.icons8.com/color/48/car--v1.png',
+          iconSize: [32, 32]
+        })
+      }).addTo(map).bindPopup("🚗 Driver");
+    }
+
+    updateETA(lat, lng, pickupLocation[0], pickupLocation[1]);
   });
+}
 
-  L.marker([26.1455, 91.737], { icon: carIcon }).addTo(map).bindPopup("🚗 Car 1");
-  L.marker([26.1465, 91.734], { icon: carIcon }).addTo(map).bindPopup("🚗 Car 2");
-
-  // Sample bike markers
-  const bikeIcon = L.icon({
-    iconUrl: 'https://img.icons8.com/color/48/motorcycle.png',
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -30]
-  });
-
-  L.marker([26.1435, 91.738], { icon: bikeIcon }).addTo(map).bindPopup("🏍️ Bike 1");
+trackDriver();
 </script>
 
 </body>
