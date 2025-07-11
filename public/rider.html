@@ -1,106 +1,116 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Track Rider - GoRide</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <title>GoRide - Select Pickup & Destination</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <!-- Esri Geocoder CSS (for place search) -->
+  <link rel="stylesheet" href="https://unpkg.com/esri-leaflet-geocoder/dist/esri-leaflet-geocoder.css" />
+
   <style>
-    #map { height: 100vh; }
-    .eta-box {
-      position: absolute;
-      top: 10px;
-      left: 10px;
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+    }
+    #map {
+      height: 85%;
+      width: 100%;
+    }
+    .controls {
+      padding: 10px;
       background: #fff;
-      padding: 10px 20px;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
-      z-index: 999;
+      display: flex;
+      gap: 10px;
+      flex-direction: column;
+      position: relative;
+      z-index: 1000;
+    }
+    .controls button {
+      padding: 10px;
+      background: #ffcc00;
+      border: none;
       font-weight: bold;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
 
+<div class="controls">
+  <div id="pickupSearch"></div>
+  <button onclick="useMyLocation()">📍 Use My Location for Pickup</button>
+  <div id="destinationSearch"></div>
+</div>
+
 <div id="map"></div>
-<div class="eta-box" id="etaBox">ETA: --</div>
 
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<!-- Esri Geocoder (for address search) -->
+<script src="https://unpkg.com/esri-leaflet"></script>
+<script src="https://unpkg.com/esri-leaflet-geocoder"></script>
 
-<!-- Firebase Config -->
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyD3ZrwJ3Jx3x8SkAgPl4sBCtd2SlUefu8w",
-  authDomain: "uber-clone-8e40b.firebaseapp.com",
-  projectId: "uber-clone-8e40b",
-  storageBucket: "uber-clone-8e40b.appspot.com", // fixed: should be .app**spot**.com
-  messagingSenderId: "392995610259",
-  appId: "1:392995610259:web:64258f3260cb3bd73b7766",
-  measurementId: "G-NXVRM5Q90X",
-  databaseURL: "https://uber-clone-8e40b-default-rtdb.firebaseio.com" // add this manually for Realtime DB
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-</script>
+  const map = L.map('map').setView([26.1445, 91.7362], 14); // Guwahati default
 
-<!-- Live Map Logic -->
-<script>
-const map = L.map('map').setView([26.1445, 91.7362], 15);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
 
-const driverId = 'driver123'; // Assume this is the assigned driver
-let driverMarker = null;
-const pickupLocation = [26.1445, 91.7362]; // your pickup location
+  let pickupMarker = null;
+  let destinationMarker = null;
 
-L.marker(pickupLocation).addTo(map).bindPopup("📍 Pickup").openPopup();
+  // Geocoder for pickup
+  const pickupSearch = L.esri.Geocoding.geosearch({
+    placeholder: "Search Pickup Location",
+    position: "topright"
+  }).addTo(map);
 
-function updateETA(lat1, lon1, lat2, lon2) {
-  const R = 6371; // km
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  const distance = R * c;
-  const avgSpeed = 30; // km/h
-  const etaMin = Math.round((distance / avgSpeed) * 60);
-
-  document.getElementById('etaBox').innerText = `ETA: ${etaMin} min`;
-}
-
-// Listen to driver location from Firebase
-function trackDriver() {
-  firebase.database().ref(`drivers/${driverId}`).on('value', snapshot => {
-    const data = snapshot.val();
-    if (!data) return;
-
-    const lat = data.lat;
-    const lng = data.lng;
-
-    if (driverMarker) {
-      driverMarker.setLatLng([lat, lng]);
-    } else {
-      driverMarker = L.marker([lat, lng], {
-        icon: L.icon({
-          iconUrl: 'https://img.icons8.com/color/48/car--v1.png',
-          iconSize: [32, 32]
-        })
-      }).addTo(map).bindPopup("🚗 Driver");
-    }
-
-    updateETA(lat, lng, pickupLocation[0], pickupLocation[1]);
+  const pickupResults = L.layerGroup().addTo(map);
+  pickupSearch.on('results', function(data) {
+    pickupResults.clearLayers();
+    if (pickupMarker) map.removeLayer(pickupMarker);
+    const latlng = data.results[0].latlng;
+    pickupMarker = L.marker(latlng, { draggable: true }).addTo(map).bindPopup("Pickup").openPopup();
+    map.setView(latlng, 15);
   });
-}
 
-trackDriver();
+  // Geocoder for destination
+  const destinationSearch = L.esri.Geocoding.geosearch({
+    placeholder: "Search Destination",
+    position: "topright"
+  }).addTo(map);
+
+  const destResults = L.layerGroup().addTo(map);
+  destinationSearch.on('results', function(data) {
+    destResults.clearLayers();
+    if (destinationMarker) map.removeLayer(destinationMarker);
+    const latlng = data.results[0].latlng;
+    destinationMarker = L.marker(latlng).addTo(map).bindPopup("Destination").openPopup();
+    map.setView(latlng, 15);
+  });
+
+  // My location function
+  function useMyLocation() {
+    if (!navigator.geolocation) {
+      alert("Geolocation not supported!");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(pos => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+
+      if (pickupMarker) map.removeLayer(pickupMarker);
+      pickupMarker = L.marker([lat, lng], { draggable: true }).addTo(map).bindPopup("Pickup (My Location)").openPopup();
+      map.setView([lat, lng], 15);
+    }, () => alert("Failed to fetch location."));
+  }
 </script>
 
 </body>
