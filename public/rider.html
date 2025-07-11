@@ -1,20 +1,69 @@
-<!-- rider.html -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Rider Dashboard</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <title>GoRide - Book a Ride</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+    }
+    #map {
+      width: 100%;
+      height: 100vh;
+    }
+  </style>
 </head>
 <body>
-  <h2>Welcome, Rider</h2>
-  <div id="map" style="height: 400px;"></div>
-  <button onclick="requestRide()">Request Ride</button>
 
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="js/firebase-config.js"></script>
-  <script src="js/rider.js"></script>
+<div id="map"></div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+  const map = L.map('map').setView([26.1445, 91.7362], 13); // Guwahati
+
+  // Add OpenStreetMap tiles (free)
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  // Add user location if allowed
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      L.marker([lat, lng]).addTo(map).bindPopup("📍 You are here").openPopup();
+      map.setView([lat, lng], 15);
+    });
+  }
+
+  // Sample car markers
+  const carIcon = L.icon({
+    iconUrl: 'https://img.icons8.com/color/48/car--v1.png',
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -30]
+  });
+
+  L.marker([26.1455, 91.737], { icon: carIcon }).addTo(map).bindPopup("🚗 Car 1");
+  L.marker([26.1465, 91.734], { icon: carIcon }).addTo(map).bindPopup("🚗 Car 2");
+
+  // Sample bike markers
+  const bikeIcon = L.icon({
+    iconUrl: 'https://img.icons8.com/color/48/motorcycle.png',
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -30]
+  });
+
+  L.marker([26.1435, 91.738], { icon: bikeIcon }).addTo(map).bindPopup("🏍️ Bike 1");
+</script>
+
 </body>
 </html>
