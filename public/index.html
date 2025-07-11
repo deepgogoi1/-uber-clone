@@ -1,42 +1,200 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Uber Clone - Home</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GoRide - Your Ride Partner</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f8f8f8;
-      text-align: center;
-      padding: 50px;
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #000;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
+
+    .hero {
+      background: url('https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=1500&q=80') no-repeat center center;
+      background-size: cover;
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-shadow: 0 0 10px rgba(0,0,0,0.7);
+    }
+
     h1 {
-      color: #333;
+      font-size: 3rem;
+      font-weight: bold;
+      margin: 0;
+      text-align: center;
     }
+
+    p {
+      font-size: 1.2rem;
+      margin: 1rem 0;
+      text-align: center;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 20px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
     .btn {
-      display: inline-block;
       padding: 15px 30px;
-      margin: 20px;
-      font-size: 18px;
-      color: white;
-      background-color: #007bff;
+      font-size: 1rem;
       border: none;
       border-radius: 8px;
+      background-color: #ffcc00;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
       text-decoration: none;
+      transition: background 0.3s;
     }
+
     .btn:hover {
-      background-color: #0056b3;
+      background-color: #f4bd00;
+    }
+
+    footer {
+      margin-top: auto;
+      padding: 10px;
+      font-size: 0.9rem;
+      color: #aaa;
+      text-align: center;
+    }
+
+    @media screen and (max-width: 768px) {
+      h1 {
+        font-size: 2rem;
+      }
+
+      .btn {
+        padding: 12px 24px;
+        font-size: 0.9rem;
+      }
+    }
+
+    /* Offline Carousel */
+    .carousel {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #111;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      z-index: 9999;
+      padding: 30px;
+    }
+
+    .carousel-slide {
+      display: none;
+      animation: fade 1s ease-in-out;
+    }
+
+    .carousel-slide.active {
+      display: block;
+    }
+
+    @keyframes fade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .carousel .btn {
+      margin-top: 30px;
+      background: #ffcc00;
+      color: #000;
     }
   </style>
 </head>
 <body>
 
-  <h1>Welcome to Uber Clone Web App</h1>
-  <p>Select your role to continue:</p>
+  <!-- Main Hero Section -->
+  <div class="hero">
+    <h1>GoRide</h1>
+    <p>Your daily ride solution — fast, safe, and affordable.</p>
+    <div class="buttons">
+      <a href="rider.html" class="btn">Book a Ride</a>
+      <a href="driver.html" class="btn">Drive with Us</a>
+    </div>
+  </div>
 
-  <a href="rider.html" class="btn">I am a Rider</a>
-  <a href="driver.html" class="btn">I am a Driver</a>
+  <!-- Offline Carousel Section -->
+  <div class="carousel" id="offlineCarousel" style="display: none;">
+    <div class="carousel-slide active">
+      <h2>🚗 Safe Rides</h2>
+      <p>Our drivers are trained and background verified for your safety.</p>
+    </div>
+    <div class="carousel-slide">
+      <h2>📍 Track Your Ride</h2>
+      <p>Live GPS tracking lets you stay informed all the way.</p>
+    </div>
+    <div class="carousel-slide">
+      <h2>💸 Affordable</h2>
+      <p>Save more with our upfront pricing and discounts.</p>
+    </div>
+    <button onclick="retryConnection()" class="btn">Retry Connection</button>
+  </div>
 
+  <footer>
+    &copy; 2025 GoRide. Inspired by Uber, Ola & Rapido.
+  </footer>
+
+  <!-- Offline Carousel Script -->
+  <script>
+    const slides = document.querySelectorAll('.carousel-slide');
+    const carousel = document.getElementById('offlineCarousel');
+    let currentSlide = 0;
+    let intervalId;
+
+    function showSlide(index) {
+      slides.forEach((s, i) => s.classList.toggle('active', i === index));
+    }
+
+    function cycleSlides() {
+      currentSlide = (currentSlide + 1) % slides.length;
+      showSlide(currentSlide);
+    }
+
+    function checkConnection() {
+      if (!navigator.onLine) {
+        carousel.style.display = 'flex';
+        showSlide(0);
+        intervalId = setInterval(cycleSlides, 4000); // Change every 4 seconds
+      }
+    }
+
+    function retryConnection() {
+      if (navigator.onLine) {
+        clearInterval(intervalId);
+        carousel.style.display = 'none';
+        location.reload();
+      } else {
+        alert('Still offline. Please check your connection.');
+      }
+    }
+
+    window.addEventListener('load', checkConnection);
+    window.addEventListener('online', () => {
+      clearInterval(intervalId);
+      carousel.style.display = 'none';
+    });
+  </script>
 </body>
 </html>
